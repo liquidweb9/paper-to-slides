@@ -1,0 +1,143 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{template}[2026/11/25 Beamer paper talk template]
+
+\RequirePackage{iftex}
+\RequireXeTeX
+\RequirePackage{xeCJK}
+\RequirePackage{unicode-math}
+\RequirePackage{tikz}
+
+% Use PDF points (bp), the same unit as the exported PowerPoint PDF.
+% PPTX: 12192000 x 6858000 EMU, i.e. 960 x 540 bp (16:9).
+\geometry{papersize={960bp,540bp}}
+\setbeamersize{text margin left=83bp,text margin right=60bp}
+\usefonttheme{serif}
+\IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{%
+  \PackageWarningNoLine{template}{Times New Roman not found; using TeX Gyre Termes}%
+  \setmainfont{TeX Gyre Termes}}
+\IfFontExistsTF{SimSun}{\setCJKmainfont[AutoFakeBold]{SimSun}}{%
+  \PackageWarningNoLine{template}{SimSun not found; using FandolSong}%
+  \setCJKmainfont[BoldFont=FandolSong-Bold.otf]{FandolSong-Regular.otf}}
+\IfFontExistsTF{SimHei}{\newCJKfontfamily\PaperTalkCoverCJK[AutoFakeBold]{SimHei}}{%
+  \PackageWarningNoLine{template}{SimHei not found; using FandolHei}%
+  \newCJKfontfamily\PaperTalkCoverCJK[BoldFont=FandolHei-Bold.otf]{FandolHei-Regular.otf}}
+\setmathfont{TeX Gyre Termes Math}
+
+% Actual cover accents from themeOverride1.xml / theme2.xml.
+\definecolor{PaperTalkOrange}{HTML}{DD8047}
+\definecolor{PaperTalkBlue}{HTML}{94B6D2}
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{background canvas}{bg=white}
+\setbeamercolor{structure}{fg=black}
+\setbeamercolor{title}{fg=black}
+\setbeamercolor{frametitle}{fg=black}
+\setbeamercolor{itemize item}{fg=PaperTalkOrange}
+\setbeamercolor{itemize subitem}{fg=PaperTalkBlue}
+\setbeamercolor{itemize subsubitem}{fg=PaperTalkOrange}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}{}
+\setbeamertemplate{navigation symbols}{}
+
+% PowerPoint body levels are 28 / 22 / 20 bp. Several slides set 24 bp
+% or 20 bp explicitly; use \PaperTalkBodySize{24} or {20} on those frames.
+\newcommand{\PaperTalkBodySize}[1]{%
+  \fontsize{#1bp}{\dimexpr#1bp*6/5\relax}\selectfont}
+\setbeamerfont{normal text}{family=\rmfamily,size=\PaperTalkBodySize{28}}
+\AddToHook{env/beamer@frameslide/begin}{\usebeamerfont{normal text}}
+\setbeamerfont{title}{family=\rmfamily,series=\bfseries,size=\PaperTalkBodySize{32}}
+\setbeamerfont{frametitle}{family=\rmfamily,series=\bfseries,size=\PaperTalkBodySize{32}}
+\setbeamerfont{framesubtitle}{family=\rmfamily,series=\mdseries,size=\PaperTalkBodySize{22}}
+\setbeamerfont{itemize/enumerate subbody}{size=\PaperTalkBodySize{22}}
+\setbeamerfont{itemize/enumerate subsubbody}{size=\PaperTalkBodySize{20}}
+
+% Use after the frame title. Save the recap for the title template, which
+% Beamer renders after collecting the frame body. Reset it on each overlay.
+\makeatletter
+\newsavebox{\papertalk@recap}
+\AddToHook{env/beamer@frameslide/begin}{\global\setbox\papertalk@recap=\box\voidb@x}
+\newcommand{\PaperTalkFormulaRecap}[2][公式回顾]{%
+  \global\setbox\papertalk@recap=\hbox{%
+    \setlength{\fboxsep}{5bp}%
+    \colorbox{PaperTalkBlue!20}{\parbox{200bp}{%
+      \centering\normalfont\color{black}%
+      {\PaperTalkBodySize{12}\bfseries\strut#1\par}%
+      {\PaperTalkBodySize{16}\strut#2\par}}}}%
+  \ignorespaces}
+
+% Draw the square list marks as vectors so they do not depend on a symbol
+% font. Size them relative to the current list text.
+\newcommand{\papertalk@mark}[1]{%
+  \makebox[16bp][l]{\ifnum#1=1\relax\kern3.6bp\fi\raisebox{.08em}{%
+    \tikz[x=1em,y=1em,line width=.037em,baseline=0pt]{%
+      \ifcase#1\relax
+        \draw (.018,.061) rectangle (.31,.353);
+      \or
+        \draw (.018,.018) rectangle (.40,.40);
+      \or
+        \fill (0,0) rectangle (.40,.40);
+      \fi
+    }}}}
+\setbeamertemplate{itemize item}{\papertalk@mark{0}}
+\setbeamertemplate{itemize subitem}{\papertalk@mark{1}}
+\setbeamertemplate{itemize subsubitem}{\papertalk@mark{2}}
+\setlength{\labelsep}{9.125bp}
+\setlength{\leftmargini}{25.125bp}
+\setlength{\leftmarginii}{25.25bp}
+\setlength{\leftmarginiii}{21.6bp}
+\def\@listi{\leftmargin\leftmargini\topsep 0bp\parsep 0bp\itemsep 7bp}
+\let\@listI\@listi
+\def\@listii{\leftmargin\leftmarginii\topsep 5.5bp\parsep 0bp\itemsep 5.5bp}
+\def\@listiii{\leftmargin\leftmarginiii\topsep 5bp\parsep 0bp\itemsep 5bp}
+
+% Page coordinates measured from the top left. A top-aligned parbox
+% lets the node's baseline coincide with the first line of the text.
+\newcommand{\papertalk@place}[3]{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=base west,inner sep=0pt,outer sep=0pt]
+      at ([xshift=#1,yshift=-#2]current page.north west) {#3};
+  \end{tikzpicture}}
+
+\newsavebox{\papertalk@heading}
+\setbeamertemplate{frametitle}{%
+  \sbox{\papertalk@heading}{%
+    \usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}%
+    \parbox[t]{649.92bp}{\raggedright\noindent\insertframetitle\par
+      \ifx\insertframesubtitle\@empty\else
+        \usebeamerfont{framesubtitle}\insertframesubtitle\par
+      \fi}}%
+  \nointerlineskip\hbox{%
+    \papertalk@place{31.2bp}{53.9bp}{\usebox{\papertalk@heading}}%
+    \ifvoid\papertalk@recap\else
+      % Align the recap to the right body margin, starting 15.9 bp from the top.
+      \papertalk@place{\dimexpr\paperwidth-60bp-\wd\papertalk@recap\relax}{53.9bp}{%
+        \raisebox{\dimexpr38bp-\ht\papertalk@recap\relax}{\usebox{\papertalk@recap}}}%
+    \fi}%
+  % Reserve whichever extends farther down: the title or a taller recap.
+  \dimen@=\dp\papertalk@heading
+  \ifvoid\papertalk@recap\else
+    \@tempdima=\dimexpr\ht\papertalk@recap+\dp\papertalk@recap-38bp\relax
+    \ifdim\@tempdima>\dimen@\dimen@=\@tempdima\fi
+  \fi
+  \nointerlineskip\vskip\dimexpr60bp+\dimen@\relax}
+
+\setbeamertemplate{title page}{%
+  \papertalk@place{69.38bp}{142.22bp}{%
+    \usebeamerfont{title}\usebeamercolor[fg]{title}\PaperTalkCoverCJK
+    \parbox[t]{795.04bp}{\raggedright\noindent\inserttitle\par}}%
+  \papertalk@place{69.38bp}{444.55bp}{\parbox[t]{527.5bp}{%
+    \raggedright\rmfamily\mdseries\PaperTalkCoverCJK\PaperTalkBodySize{14}%
+    \noindent\insertauthor\par
+    \ifx\insertdate\@empty\else\insertdate\par\fi}}}
+
+\newcommand{\PaperTalkTitleFrame}{%
+  \begingroup
+  \setbeamertemplate{background}{%
+    \begin{tikzpicture}[remember picture,overlay]
+      \fill[PaperTalkOrange] ([yshift=-510bp]current page.north west)
+        rectangle ([xshift=235.1667bp,yshift=-532.75bp]current page.north west);
+      \fill[PaperTalkBlue] ([xshift=247.6668bp,yshift=-510bp]current page.north west)
+        rectangle ([yshift=-532.125bp]current page.north east);
+    \end{tikzpicture}}%
+  \frame[plain]{\titlepage}%
+  \endgroup}
+\makeatother

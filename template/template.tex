@@ -1,0 +1,163 @@
+% !TeX program = xelatex
+% Build and clean: latexmk -xelatex template.tex; latexmk -c template.tex
+% For a new talk, copy this file as main.tex together with template.sty.
+\documentclass[aspectratio=169,t]{beamer}
+\usepackage{template}
+
+\title{低秩适配：如何减少任务适配的训练参数？}
+\author{作者姓名 / Paper Authors}
+\date{会议或期刊名称 / Venue and Year}
+
+% Set to \PaperTalkProblemIntrotrue to preview an introduction before the
+% contributions. The default assumes the audience is familiar with fine-tuning.
+\newif\ifPaperTalkProblemIntro
+\PaperTalkProblemIntrofalse
+\newcommand{\DemoFactors}{B\in\mathbb{R}^{d\times r},\quad A\in\mathbb{R}^{r\times k}}
+\newcommand{\DemoUpdate}{\Delta W=\frac{\alpha}{r}BA}
+\newcommand{\DemoForward}{h=W_0x+\frac{\alpha}{r}BAx}
+
+\begin{document}
+
+\PaperTalkTitleFrame
+
+% Main-talk flow: problem (only when needed), contributions, prerequisites,
+% method, proof when applicable, experiments, and summary.
+\ifPaperTalkProblemIntro
+\begin{frame}{问题引入：每个任务都需要一整套新权重吗？}
+  \begin{itemize}
+    \item 同一个基础模型要适配多个任务，例如文本分类和摘要。
+    \item 全量微调会更新全部权重。仅一个 $1000\times1000$ 权重矩阵，
+      就需要为每个任务保存一百万个权重。
+    \item 我们能否共享原始权重，只为每个任务训练并保存少量参数？
+  \end{itemize}
+\end{frame}
+\fi
+
+\begin{frame}{主要贡献：先给出问题、方法和证据}
+  \begin{itemize}
+    \item 全量微调需要为每个任务训练并保存大量权重。怎么让任务共享基础权重？
+    \item 冻结基础权重，只学习由两个小矩阵相乘得到的低秩更新。
+    \item 推导可训练参数量，并用两个小例子检验低秩更新何时足够。
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{前置知识：用两个小矩阵表示低秩更新}
+  \begin{itemize}
+    \item 基础权重 $W_0\in\mathbb{R}^{d\times k}$ 在任务适配期间保持冻结。
+    \item 两个因子的维度分别是 $\DemoFactors$，其中 $r\ll\min(d,k)$。
+    \item $BA$ 的大小与 $W_0$ 相同，但最多能表达 $r$ 个独立的更新方向。
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{方法：冻结基础权重，只训练低秩增量}
+  \PaperTalkFormulaRecap[前置：低秩因子]{%
+    $\DemoFactors$}
+  \begin{itemize}
+    \item 输入 $x$ 经过冻结映射 $W_0$，再加上可训练的低秩更新。
+    \item $\alpha/r$ 控制增量尺度；$A,B$ 从数据中学习任务方向。
+  \end{itemize}
+  \[
+    W=W_0+\Delta W,\qquad \DemoUpdate,\qquad \DemoForward.
+  \]
+  {\PaperTalkBodySize{18}全量更新需 $dk$ 个参数；低秩更新需 $r(d+k)$ 个参数。}
+\end{frame}
+
+\begin{frame}{关键推导：低秩更新为什么更省参数？}
+  \PaperTalkFormulaRecap[更新形式]{%
+    $\DemoUpdate$}
+  \PaperTalkBodySize{22}
+  \begin{align*}
+    W_0 &\in \mathbb{R}^{d\times k}
+    &&\Longrightarrow dk\text{ 个可训练参数（全量微调）}\\
+    &\DemoFactors
+    &&\Longrightarrow dr+rk=r(d+k)\text{ 个参数}\\
+    \frac{r(d+k)}{dk}
+    &= r\left(\frac{1}{d}+\frac{1}{k}\right)
+    &&\text{为可训练参数占比}
+  \end{align*}
+  例如 $d=k=1000, r=8$：$1{,}000{,}000$ 降至 $16{,}000$，为原来的 $1.6\%$。
+\end{frame}
+
+\begin{frame}{具体例子：一次前向计算如何使用低秩更新？}
+  \PaperTalkFormulaRecap[更新形式]{%
+    $\DemoForward$}
+  \PaperTalkBodySize{22}
+  取 $x=\begin{bmatrix}1\\2\end{bmatrix}$，$A=\begin{bmatrix}1&0\end{bmatrix}$，
+  $B=\begin{bmatrix}2\\-1\end{bmatrix}$，$\alpha/r=0.5$，$W_0=I$。
+  \[
+    Ax=1,\qquad BAx=\begin{bmatrix}2\\-1\end{bmatrix},\qquad
+    h=\begin{bmatrix}1\\2\end{bmatrix}
+      +0.5\begin{bmatrix}2\\-1\end{bmatrix}
+      =\begin{bmatrix}2\\1.5\end{bmatrix}.
+  \]
+  {\PaperTalkBodySize{18}示例用于解释计算流程，不是论文报告的实验结果。}
+\end{frame}
+
+\begin{frame}{证明（如适用）：秩不会超过瓶颈维度}
+  \PaperTalkFormulaRecap[因子维度]{%
+    $\DemoFactors$}
+  \begin{align*}
+    \operatorname{rank}(BA)
+      &\leq \min\{\operatorname{rank}(B),\operatorname{rank}(A)\}\\
+      &\leq r.
+  \end{align*}
+  \begin{itemize}
+    \item $A$ 把输入映射到至多 $r$ 维的空间，$B$ 只是线性映射，不能增加维度。
+    \item 该结论说明更新受限于低维子空间；它本身不证明任务精度必然提高。
+  \end{itemize}
+  % Replace this pedagogical proposition with the paper's actual theorem,
+  % assumptions, proof steps, and source locator when a proof is relevant.
+\end{frame}
+
+\begin{frame}{实验示例：秩为 1 的更新何时足够？}
+  \PaperTalkBodySize{24}
+  \begin{itemize}
+    \item 设置：在二维空间比较任意矩阵更新与单方向更新，分别用两个标准基向量作输入。
+    \item 指标：对两个输入的更新输出计算平方误差并求和。
+  \end{itemize}
+  \vspace{14bp}
+  \centering
+  \begin{tabular}{lcc}
+    \hline
+    目标更新 & 全量更新误差 & 秩 1 更新误差 \\
+    \hline
+    只更新第一方向：$\operatorname{diag}(2,0)$ & 0 & 0 \\
+    两个方向都更新：$\operatorname{diag}(2,1)$ & 0 & 1 \\
+    \hline
+  \end{tabular}\par
+  \vspace{12bp}
+  {\PaperTalkBodySize{18}秩 1 更新取 $\operatorname{diag}(2,0)$：它保留第一方向，在第二组漏掉了第二方向。\par}
+  \vfill
+  {\PaperTalkBodySize{16}\color{black!65}合成数据演示，不是论文实验。}
+  % In a real talk, crop the figure or table from the source and record its
+  % locator here. Check the baselines, conditions, units, and legends.
+\end{frame}
+
+\begin{frame}{总结：结论、边界与下一步}
+  \begin{itemize}
+    \item 冻结基础权重、只保存低秩因子，可将每个矩阵的适配参数从 $dk$ 降到 $r(d+k)$，前提是 $r(d+k)<dk$。
+    \item 当任务需要更多独立更新方向时，秩太小可能限制拟合；二维实验展示了这个边界。
+    \item 后续可比较不同秩和插入层，在真实任务上同时测量效果和训练成本。
+  \end{itemize}
+\end{frame}
+
+% Template guidance, not part of the demonstration's main talk.
+\renewcommand{\appendixname}{附录}
+\appendix
+\begin{frame}{编排示例：贡献页能否讲清关键问题？}
+  \PaperTalkBodySize{24}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{.47\textwidth}
+      \textbf{能够讲清：直接讲贡献}\par\medskip
+      “全量微调要为每个任务保存一整套权重。我们共享基础权重，只为每个任务学习并保存低秩更新。”\par\medskip
+      熟悉微调的听众能当场说出原方案的成本，以及新方法改变了什么。
+    \end{column}
+    \begin{column}{.47\textwidth}
+      \textbf{需要铺垫：先讲问题}\par\medskip
+      只说“我们提出了低秩适配”交代不了为何要做。若听众不熟悉多任务微调，先举两个任务各保存一份权重的例子，再问能否共享。\par\medskip
+      开启可选引入页，即可预览这种顺序。
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\end{document}
