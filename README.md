@@ -1,18 +1,36 @@
 # Paper to Slides
 
-把研究论文整理成适合组会、论文讨论班或 Journal Club 的技术汇报。这个仓库包含一份 Codex Skill、一套 16:9 LaTeX Beamer 模板，以及归档论文、检查证据、编译 PDF 和导出 PowerPoint 的脚本。
+**简体中文** · [English](README.en.md)
 
-从论文开始时，先核对论文版本和证据，再确认逐页大纲，随后制作可重新编译的 LaTeX 与 PDF。已有幻灯片 PDF 时，可以直接导出带 PowerPoint 原生演讲者备注的 PPTX。PPTX 默认以 SVG 保留 PDF 的矢量内容，正文的可编辑源文件是 LaTeX，演讲者备注可在 PowerPoint 内编辑。
+把研究论文整理成适合组会、论文讨论班或 Journal Club 的技术汇报。可以从论文制作 Beamer 幻灯片、从参考 PPTX 定制可复用的 LaTeX 模板，或把现有幻灯片 PDF 导出为带演讲者备注的 PowerPoint。[查看默认 16:9 Beamer 模板预览](template/template.pdf)
 
-- **在 Codex 中使用**。打开此仓库，指明使用 Skill，并提供完整论文、汇报语言、听众背景和可用时间。已有阅读笔记、指定论文版本或想重点讲的公式时，可以一并提供。[`SKILL.md`](SKILL.md)
-- **从命令行使用**。在仓库根目录执行下面的命令。脚本负责文件处理、编译和导出。逐页大纲、LaTeX 内容和讲稿由汇报者或助手编写。
-- **查看版式**。[Beamer 模板预览 PDF](template/template.pdf)
+## 快速开始：在 Agent 中使用
+
+在支持的客户端中打开**本仓库根目录**，无需将命令安装到用户主目录。在 Claude Code、Antigravity 和 OpenCode 使用下表中的 `/命令名`；在 Codex 输入 `$` 并选择同名 Skill，例如 `$slides-init "projects/my-talk"`。
+
+| 命令 | 示例或用途 |
+| --- | --- |
+| `/paper-to-slides` | `/paper-to-slides "paper.pdf" --project "projects/my-talk"`：先确认逐页大纲，再制作 LaTeX 和 PDF。 |
+| `/pptx-to-template` | `/pptx-to-template "reference.pptx" --project "projects/my-template"`：确认版式与素材后生成模板。 |
+| `/pdf-to-pptx` | `/pdf-to-pptx "my-slides.pdf" --notes "speaker-notes.md"`：保留原页序并导出原生备注。 |
+| `/slides-init` | `/slides-init "projects/my-talk"`：初始化项目。 |
+| `/slides-import` | `/slides-import "projects/my-talk" --manuscript "paper.pdf"`：归档资料。 |
+| `/slides-build` | `/slides-build "projects/my-talk"`：重新编译现有 LaTeX。 |
+| `/slides-check` | `/slides-check "projects/my-talk" --mode pdf`：检查 PDF 构建；也可用 `evidence` 或 `both`。 |
+| `/pdf-crop` | `/pdf-crop "paper.pdf" --page 7 --output "page-07.png"`：渲染整页，或用 `--crop` 裁图。 |
+| `/slides-status` | `/slides-status "projects/my-talk"`：查看已有文件和产物。 |
+| `/slides-clean` | `/slides-clean "projects/my-talk"`：只清理 `build/`。 |
+| `/slides-delete` | `/slides-delete "projects/my-talk"`：确认后删除整个项目。 |
+
+详见[命令参数与客户端用法](references/agent-commands.md)。也可在仓库根目录运行下文的 Python 命令；逐页大纲、LaTeX 内容和讲稿由汇报者或 Agent 编写。
 
 ## 环境准备
 
 | 用途 | 依赖 |
 | --- | --- |
-| 初始化项目、归档和检查 PDF 资料 | Python 3.11 或更新版本、PyMuPDF |
+| 运行脚本 | Python 3.11 或更新版本 |
+| 索引、渲染和检查 PDF | PyMuPDF |
+| 从 PPTX 盘点版式、提取确认过的原图 | python-pptx；建议另提供 PowerPoint 导出的 PDF 供视觉核对 |
 | 编译 Beamer PDF | `latexmk`、`xelatex`，以及 Beamer、xeCJK、unicode-math 和 TikZ |
 | 导出 PPTX | PyMuPDF、python-pptx。默认 SVG 导出另需 Poppler 的 `pdftocairo` |
 
@@ -57,7 +75,7 @@ python scripts/project_manager.py status "projects/my-talk"
 python scripts/check_evidence.py "projects/my-talk"
 ```
 
-此命令检查归档指纹、链接和页码范围。数据、公式与结论仍应逐一对照论文。汇报者构造的手算例子要明确标记，并限定由实验支持的结论。用 Codex 制作新汇报时，按 Skill 中的流程确认大纲后进入制作。[证据核对与讨论指南](references/evidence-review.md)
+此命令检查归档指纹、链接和页码范围。数据、公式与结论仍应逐一对照论文。汇报者构造的手算例子要明确标记，并限定由实验支持的结论。使用 Agent 制作新汇报时，须按 [Skill 工作流](SKILL.md) 明确批准大纲后才进入制作。[证据核对与讨论指南](references/evidence-review.md)
 
 ### 3. 编译并检查 PDF
 
@@ -71,6 +89,16 @@ python scripts/build_pdf.py check "projects/my-talk"
 `build` 通过 `latexmk` 调用 XeLaTeX，检查编译日志和 PDF，并生成逐页预览。通过检查的 PDF 写到 `build/main.pdf`。`check` 复核已编译的文件，并检查 `slides/` 是否在编译后被修改。修改 LaTeX 或图表后，重新执行 `build`。
 
 先读 `build/check.json`，再逐页查看 `build/pages/`。编译错误、横向或纵向盒子溢出、缺字、未解析的交叉引用和越界文本会触发自动检查。公式与图表的裁切、重叠和投影可读性需要结合预览核对。构建失败时，查看 `build/compile.log` 和可用的 `build/latex/main.log`。每次重新构建都会重建 `build/`，此前导出的 PPTX 也需要重新生成。
+
+## 从参考 PPTX 定制模板
+
+使用 `/pptx-to-template`（Codex：`$pptx-to-template`）后，Agent 先盘点实际页码、版式、母版和可选对象，再分轮询问：
+
+1. **整体布局**：页面比例、留白、字体、配色、标题和页脚。
+2. **各阶段版式**：封面、方法、实验等阶段用哪些代表页作为参考，示例中保留哪些可替换区域。
+3. **素材复用**：逐项选择按样式重建、复用指定原件，或使用占位／省略，并确认原件的使用范围。
+
+确认设计单后才生成 `slides/main.tex`、本地主题和 PDF 预览。选择参考页不会自动复制原页内容。只做模板不需要论文；模板可以脱离原 PPTX 编译。脚本支持提取选中的嵌入式 PNG/JPEG；复杂图表或矢量素材可能需要手工处理。盘点、选择性提取和生成模板的命令见 [PPTX 模板工作流](references/pptx-template.md)。
 
 ## 导出带原生备注的 PowerPoint
 
@@ -96,10 +124,10 @@ python scripts/export_pptx.py "projects/my-talk"
 python scripts/export_pptx.py "my-slides.pdf" --notes "speaker-notes.md" --output "my-slides.pptx"
 ```
 
-默认每页嵌入一张 SVG，PDF 中的文字、公式和矢量图形保留为可缩放路径。PDF 已包含的位图受原始分辨率限制。兼容用的备用 PNG 采用无损压缩，默认长边 3840 像素，16:9 页面为 3840 × 2160。纯 PNG 导出可用下面的命令。
+默认每页嵌入一张 SVG，PDF 中的文字、公式和矢量图形保留为可缩放路径。投影内容是一张图，编辑版式或正文请修改 LaTeX；备注可在 PowerPoint 中编辑。兼容用的备用 PNG 采用无损压缩，默认长边 3840 像素，16:9 页面为 3840 × 2160。纯 PNG 导出可用下面的命令。
 
 ```sh
-python scripts/export_pptx.py "my-slides.pdf" --format png --png-long-edge 3840 --output "my-slides-png.pptx"
+python scripts/export_pptx.py "my-slides.pdf" --notes "speaker-notes.md" --format png --png-long-edge 3840 --output "my-slides-png.pptx"
 ```
 
 导出脚本会复核页数、图片、位置、SVG 引用及备注在 PPTX 中的对应关系。交付前对照 PDF 放大检查公式和裁图，并在目标查看器里检查放映效果。PDF 页序变化时同步调整备注，再运行导出。只修改备注时，直接重新导出即可。[PPTX 导出指南](references/pptx-export.md)
@@ -110,12 +138,14 @@ python scripts/export_pptx.py "my-slides.pdf" --format png --png-long-edge 3840 
 projects/my-talk/
 ├── .paper-to-slides          项目管理标记
 ├── sources/                  论文、笔记和补充资料的归档及 manifest.json
-├── outline.md                逐页大纲和证据位置
+├── template-source/          模板项目的参考 PPTX 归档和盘点
+├── template-spec.json        模板项目可选的生成配置
+├── outline.md                逐页大纲和证据位置，或模板设计单
 ├── speaker-notes.md          逐页演讲者讲稿
 ├── source-review/            可选的原文核对截图
 ├── slides/
 │   ├── main.tex              Beamer 入口
-│   ├── template.sty         本地主题
+│   ├── *.sty                本地主题
 │   └── figures/             幻灯片用图
 └── build/
     ├── main.pdf              通过自动检查的 PDF

@@ -92,7 +92,8 @@ def main():
             return
         root = project_directory(args.project)
         if args.command == "status":
-            files = ("sources/manifest.json", "outline.md", "speaker-notes.md", "slides/main.tex",
+            files = ("sources/manifest.json", "template-source/inventory.json", "template-spec.json",
+                     "outline.md", "speaker-notes.md", "slides/main.tex",
                      "build/main.pdf", "build/check.json", "build/main.pptx")
             print(json.dumps({name: (root / name).is_file() for name in files}, indent=2))
             return

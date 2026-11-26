@@ -6,14 +6,17 @@ description: >-
   with optional presenter notes and a paper link. Build a source-backed slide-by-slide outline
   for user approval, then deliver Beamer source and PDF with an optional
   vector-first PPTX with speaker notes. Also export an existing slide PDF to
-  PowerPoint with per-page presenter notes.
+  PowerPoint with per-page presenter notes. When a user supplies a reference
+  PPTX to design a reusable LaTeX Beamer template, ask them to choose the deck
+  layout, frame types by presentation stage, and original assets to reuse.
 ---
 
 # Paper to Slides
 
 Turn the supplied paper materials into a technically substantial group presentation with a review of the slide outline before production.
 
-For a request to convert an existing **slide PDF** to PowerPoint, go directly to [PPTX export](references/pptx-export.md). Treat the supplied slide order and content as final for this conversion. Use the same route after the presenter manually revises LaTeX and generates a new PDF.
+- To design a reusable LaTeX Beamer template from a **reference PPTX**, go directly to [PPTX → Beamer template](references/pptx-template.md). Inspect the deck and ask the staged design questions before generating LaTeX. No manuscript is needed for a blank or sample template. If the user also requests a paper talk, confirm the template design and then follow the paper workflow below in a separate talk project, including its evidence-backed outline review. Use the selected local theme instead of the default one.
+- To convert an existing **slide PDF** to PowerPoint, go directly to [PPTX export](references/pptx-export.md). Treat the supplied slide order and content as final for this conversion. Use the same route after the presenter manually revises LaTeX and generates a new PDF.
 
 ## 1. Collect and verify sources
 
