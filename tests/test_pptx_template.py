@@ -104,6 +104,8 @@ class PptxTemplateTest(unittest.TestCase):
         extract_images(self.root, [self.logo_id, "m1:bg"])
         generate(self.root, self.spec)
         (self.root / "template-source" / "original.pptx").unlink()
+        subprocess.run([sys.executable, str(SCRIPTS / "project_manager.py"), "approve-outline", str(self.root), "--yes"],
+                       check=True, capture_output=True)
         result = subprocess.run([sys.executable, str(SCRIPTS / "build_pdf.py"), "build", str(self.root)],
                                 capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
         report = json.loads((self.root / "build" / "check.json").read_text(encoding="utf-8"))

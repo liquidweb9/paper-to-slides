@@ -68,7 +68,7 @@ For example, in a FedRot-LoRA talk, three successive frames can all have the pag
 
 Follow the [evidence and discussion guide](references/evidence-review.md) when writing the per-slide plan. Put clickable manuscript locators beside substantive claims in `outline.md`, then run [`scripts/check_evidence.py <talk-directory>`](scripts/check_evidence.py) before sharing it. For each central result, plan how the speaker will explain the comparison or proof step and its scope. Use the evidence to develop the concrete follow-up direction for the final slide. Mark unresolved items beside affected slides and omit unsupported numbers or claims.
 
-**Blocking outline review.** Share `outline.md`, call out any material gaps, and ask the user to approve it or request changes. Stop before authoring or editing Beamer slide code, compiling a deck, or exporting slides. Revise the outline in response to feedback and wait for explicit approval of the version to be built. A request to make the presentation or silence does not approve the outline. On resume, require an explicit approval in the conversation or an outline the user explicitly identifies as already approved.
+**Blocking outline review.** Share `outline.md`, call out any material gaps, and ask the user to approve it or request changes. Stop before authoring or editing Beamer slide code, compiling a deck, or exporting slides. After explicit approval, run `python scripts/project_manager.py approve-outline <talk-directory> --yes` to record the fingerprint. On resume, a matching approval record is sufficient; otherwise require explicit approval of the current outline. A request to make the presentation or silence does not approve the outline.
 
 ---
 

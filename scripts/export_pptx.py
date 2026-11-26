@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import io
+import json
 import re
 import shutil
 import subprocess
@@ -11,6 +12,7 @@ import tempfile
 from pathlib import Path
 
 from project_manager import MARKER, project_directory, project_lock, project_path
+from build_pdf import require_current_build
 
 
 SVG_NAMESPACE = "http://schemas.microsoft.com/office/drawing/2016/SVG/main"
@@ -202,6 +204,10 @@ def main():
             root = project_directory(args.source)
             with project_lock(root):
                 build = project_path(root, "build")
+                require_current_build(build, project_path(root, "slides"))
+                report = json.loads(project_path(build, "check.json").read_text(encoding="utf-8"))
+                if not isinstance(report, dict) or report.get("automated_checks_passed") is not True:
+                    raise ValueError("The current build has not passed PDF checks. Rebuild before exporting.")
                 export(project_path(build, "main.pdf"), args.notes or root / "speaker-notes.md",
                        project_path(build, "main.pptx"), **image_options)
         else:

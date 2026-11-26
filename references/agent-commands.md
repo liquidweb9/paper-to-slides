@@ -53,7 +53,7 @@
 
 ### `/slides-build` · 编译或重编 PDF
 
-需要已确认的大纲或模板设计单及已存在的 `slides/main.tex`。先核对输入，尤其注意脚本会重建 `build/` 并移除其中上次导出的 PPTX；知道项目仍在等审批时先请用户确认。按 [项目工作流](project-workflow.md) 执行 `python scripts/build_pdf.py build <项目路径>`，读取检查报告，核对预览并报告失败或生成的 PDF。只编译现有源码，不生成草稿或自动重新导出 PPTX。
+需要已确认的大纲或模板设计单及已存在的 `slides/main.tex`。若当前大纲没有匹配的审批记录，先取得明确批准，再运行 `python scripts/project_manager.py approve-outline <项目路径> --yes`。按 [项目工作流](project-workflow.md) 执行 `python scripts/build_pdf.py build <项目路径>` 并核对预览。成功才替换 `build/`（包括上次 PPTX）；编译或检查失败时查看 `build-failed/`。只编译现有源码，不生成草稿或自动重新导出 PPTX。
 
 ### `/slides-check` · 检查证据或 PDF
 
@@ -69,7 +69,7 @@
 
 ### `/slides-clean` · 清除构建产物
 
-指定明确项目后运行 `python scripts/project_manager.py clean <项目路径>`。只清除该受管项目的 `build/`，包括 PDF、PPTX、预览和编译中间文件；保留归档、大纲及 LaTeX 源文件。项目不明确时先问路径；不要改用全项目删除。
+指定明确项目后运行 `python scripts/project_manager.py clean <项目路径>`。只清除该受管项目的 `build/` 和 `build-failed/`；保留归档、大纲及 LaTeX 源文件。项目不明确时先问路径；不要改用全项目删除。
 
 ### `/slides-delete` · 删除项目
 

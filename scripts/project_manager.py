@@ -9,11 +9,12 @@ from contextlib import contextmanager
 from http.client import HTTPException
 from pathlib import Path
 
-from prepare_sources import add_source_arguments, prepare
+from prepare_sources import add_source_arguments, prepare, sha256
 
 
 MARKER = ".paper-to-slides"
 FORMAT = "paper-to-slides 1\n"
+APPROVAL = ".outline-approved.sha256"
 
 
 def is_link(path):
@@ -70,21 +71,39 @@ def init(path):
 
 
 def clean_build(root):
-    build = project_path(root, "build")
-    if build.exists():
-        shutil.rmtree(build)
+    folders = [project_path(root, name) for name in ("build", "build-failed")]
+    for folder in folders:
+        if folder.exists():
+            shutil.rmtree(folder)
+
+
+def outline_digest(root):
+    outline = project_path(root, "outline.md")
+    if not outline.is_file():
+        raise ValueError("Expected outline.md before recording or checking approval.")
+    return sha256(outline)
+
+
+def require_approved_outline(root):
+    digest = outline_digest(root)
+    approval = project_path(root, APPROVAL)
+    if not approval.is_file() or approval.read_text(encoding="utf-8").strip() != digest:
+        raise ValueError("outline.md is not approved in its current version. After explicit approval, run approve-outline.")
+    return digest
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    for command in ("init", "import-sources", "status", "clean", "delete"):
+    for command in ("init", "import-sources", "approve-outline", "status", "clean", "delete"):
         subparser = commands.add_parser(command)
         subparser.add_argument("project", type=Path)
         if command == "import-sources":
             add_source_arguments(subparser)
         if command == "delete":
             subparser.add_argument("--yes", action="store_true", help="Confirm deletion of the whole managed project")
+        if command == "approve-outline":
+            subparser.add_argument("--yes", action="store_true", help="Record explicit approval of the current outline.md")
     args = parser.parse_args()
     try:
         if args.command == "init":
@@ -94,13 +113,25 @@ def main():
         if args.command == "status":
             files = ("sources/manifest.json", "template-source/inventory.json", "template-spec.json",
                      "outline.md", "speaker-notes.md", "slides/main.tex",
-                     "build/main.pdf", "build/check.json", "build/main.pptx")
-            print(json.dumps({name: (root / name).is_file() for name in files}, indent=2))
+                     "build/main.pdf", "build/check.json", "build/main.pptx", "build-failed/check.json")
+            status = {name: (root / name).is_file() for name in files}
+            try:
+                require_approved_outline(root)
+                status["outline_approved"] = True
+            except ValueError:
+                status["outline_approved"] = False
+            print(json.dumps(status, indent=2))
             return
         with project_lock(root):
             if args.command == "import-sources":
                 args.output_dir = project_path(root, "sources")
                 print(prepare(args))
+            elif args.command == "approve-outline":
+                if not args.yes:
+                    raise ValueError("Use approve-outline --yes only after explicit approval of the current outline.")
+                approval = project_path(root, APPROVAL)
+                approval.write_text(outline_digest(root) + "\n", encoding="utf-8")
+                print(approval)
             elif args.command == "clean":
                 clean_build(root)
                 print(root / "build")

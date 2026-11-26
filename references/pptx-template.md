@@ -93,6 +93,7 @@ python scripts/inspect_pptx.py inspect "projects/my-template" "reference.pptx"
 
    ```sh
    python scripts/generate_beamer_template.py "projects/my-template" "projects/my-template/template-spec.json"
+   python scripts/project_manager.py approve-outline "projects/my-template" --yes
    python scripts/build_pdf.py build "projects/my-template"
    ```
 

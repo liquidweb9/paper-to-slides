@@ -19,7 +19,7 @@ Open the **repository root** in your client. The commands are scoped to the repo
 | `/slides-check` | `/slides-check "projects/my-talk" --mode pdf`: check the PDF build; use `evidence` for source links or `both` for both checks. |
 | `/pdf-crop` | `/pdf-crop "paper.pdf" --page 7 --output "page-07.png"`: render a page, or add `--crop` to select a region. |
 | `/slides-status` | `/slides-status "projects/my-talk"`: see which project files and outputs exist. |
-| `/slides-clean` | `/slides-clean "projects/my-talk"`: remove only `build/`. |
+| `/slides-clean` | `/slides-clean "projects/my-talk"`: remove build outputs and failure diagnostics. |
 | `/slides-delete` | `/slides-delete "projects/my-talk"`: remove the entire project after confirmation. |
 
 See the [command reference (Chinese)](references/agent-commands.md) for arguments and client-specific details. You can also run the Python commands below from the repository root. The presenter or agent writes the outline, LaTeX content, and speaker notes.
@@ -82,13 +82,14 @@ The script checks archive hashes and locators; compare the claims themselves wit
 Copy [`template/template.tex`](template/template.tex) to `slides/main.tex` and [`template/template.sty`](template/template.sty) alongside it. Replace the example frames with the approved content and reference local styles and figures by relative path.
 
 ```sh
+python scripts/project_manager.py approve-outline "projects/my-talk" --yes
 python scripts/build_pdf.py build "projects/my-talk"
 python scripts/build_pdf.py check "projects/my-talk"
 ```
 
 `build` runs XeLaTeX via `latexmk`, checks the logs and PDF, and renders page previews. A passing PDF is published as `build/main.pdf`. `check` rechecks the existing build and detects changes to `slides/` since compilation.
 
-Read `build/check.json` and inspect each preview under `build/pages/` for overlap, cropping, and readability. Automated checks detect problems such as overfull boxes, missing glyphs, unresolved references, and off-page text. Failed builds leave diagnostics in `build/compile.log` and, when available, `build/latex/main.log`. Rebuilding recreates `build/`; export any previously generated PPTX again afterwards.
+Record approval only after explicit approval of the current outline. Any outline edit requires renewed approval. Use unique slide headings such as `### S01 Title`, with evidence links in each section; see the [evidence guide](references/evidence-review.md) for exemptions. Read `build/check.json` and inspect the previews. Failed compilations or checks leave diagnostics in `build-failed/` and preserve the last passing `build/`. Successful rebuilds replace `build/`; regenerate the PPTX afterwards. Managed export requires a current build. Existing projects need to record approval and rebuild once.
 
 ## Design a template from a reference PPTX
 

@@ -6,10 +6,11 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 from prepare_sources import tree_sha256
-from project_manager import clean_build, project_directory, project_lock, project_path
+from project_manager import project_directory, project_lock, project_path, require_approved_outline
 
 
 BLOCKING_DIAGNOSTICS = (
@@ -77,23 +78,25 @@ def save_report(build, issues, page_count=0):
               "review_pages": "pages/" if page_count else None, "issues": issues}
     report_path = project_path(build, "check.json")
     report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(report_path)
     return passed
 
 
+def require_current_build(build, slides):
+    approval = require_approved_outline(slides.parent)
+    for name, expected in (("slides.sha256", tree_sha256(slides)), ("outline.sha256", approval)):
+        fingerprint = project_path(build, name)
+        if not fingerprint.is_file() or fingerprint.read_text(encoding="utf-8").strip() != expected:
+            raise ValueError("Build is stale or untracked. Rebuild the current approved slides before checking or exporting.")
+
+
 def check_build(build, slides):
+    require_current_build(build, slides)
     latex = project_path(build, "latex")
     pdf = latex / "main.pdf"
     log = latex / "main.log"
     published = build / "main.pdf"
-    published.unlink(missing_ok=True)
     if not pdf.is_file() or not log.is_file():
         raise ValueError("No completed XeLaTeX build to check. Run the build command first.")
-    fingerprint = build / "slides.sha256"
-    if not fingerprint.is_file() or fingerprint.read_text(encoding="utf-8").strip() != tree_sha256(slides):
-        return save_report(build, [{"severity": "error", "kind": "stale_build",
-                                    "message": "Slide sources changed. Rebuild before checking the PDF."}])
-
     issues = latex_diagnostics(log)
     try:
         page_count, pdf_issues = inspect_pdf(pdf, project_path(build, "pages"))
@@ -105,16 +108,12 @@ def check_build(build, slides):
     staged = project_path(latex, "checked.pdf")
     shutil.copyfile(pdf, staged)
     staged.replace(published)
-    print(published)
     return True
 
 
-def build_pdf(root, slides):
-    clean_build(root)
-    build = root / "build"
-    build.mkdir()
+def compile_candidate(build, slides, approval):
     main = project_path(slides, "main.tex")
-    if not main.is_file() or not (root / "outline.md").is_file():
+    if not main.is_file():
         return save_report(build, [{"severity": "error", "kind": "missing_input",
                                     "message": "Expected outline.md and slides/main.tex. Build after outline approval."}])
     latexmk = shutil.which("latexmk")
@@ -136,7 +135,40 @@ def build_pdf(root, slides):
                        "message": "XeLaTeX did not produce a complete PDF. See compile.log and latex/main.log."})
         return save_report(build, issues)
     (build / "slides.sha256").write_text(fingerprint + "\n", encoding="utf-8")
+    (build / "outline.sha256").write_text(approval + "\n", encoding="utf-8")
     return check_build(build, slides)
+
+
+def build_pdf(root, slides):
+    approval = require_approved_outline(root)
+    published = project_path(root, "build")
+    failed = project_path(root, "build-failed")
+    with tempfile.TemporaryDirectory(prefix=".build-", dir=root) as folder:
+        candidate = Path(folder) / "candidate"
+        candidate.mkdir()
+        try:
+            passed = compile_candidate(candidate, slides, approval)
+        except (OSError, ValueError, RuntimeError) as error:
+            passed = save_report(candidate, [{"severity": "error", "kind": "build_failed", "message": str(error)}])
+        if failed.exists():
+            shutil.rmtree(failed)
+        if not passed:
+            candidate.rename(failed)
+            print(failed / "check.json")
+            return False
+        backup = Path(folder).with_name(Path(folder).name + "-previous")
+        if published.exists():
+            published.rename(backup)
+        try:
+            candidate.rename(published)
+        except OSError:
+            if backup.exists():
+                backup.rename(published)
+            raise
+        if backup.exists():
+            shutil.rmtree(backup)
+    print(published / "main.pdf")
+    return True
 
 
 def main():
@@ -150,10 +182,13 @@ def main():
         with project_lock(root):
             passed = (build_pdf(root, slides) if args.command == "build"
                       else check_build(project_path(root, "build"), slides))
+            if args.command == "check":
+                print(root / "build" / "check.json")
     except (OSError, ValueError, RuntimeError) as error:
         parser.exit(1, f"PDF workflow failed: {error}\n")
     if not passed:
-        parser.exit(1, "Automated PDF checks failed. See build/check.json.\n")
+        report = "build-failed/check.json" if args.command == "build" else "build/check.json"
+        parser.exit(1, f"Automated PDF checks failed. See {report}.\n")
 
 
 if __name__ == "__main__":

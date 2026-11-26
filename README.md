@@ -19,7 +19,7 @@
 | `/slides-check` | `/slides-check "projects/my-talk" --mode pdf`：检查 PDF 构建；也可用 `evidence` 或 `both`。 |
 | `/pdf-crop` | `/pdf-crop "paper.pdf" --page 7 --output "page-07.png"`：渲染整页，或用 `--crop` 裁图。 |
 | `/slides-status` | `/slides-status "projects/my-talk"`：查看已有文件和产物。 |
-| `/slides-clean` | `/slides-clean "projects/my-talk"`：只清理 `build/`。 |
+| `/slides-clean` | `/slides-clean "projects/my-talk"`：清理构建产物和失败诊断。 |
 | `/slides-delete` | `/slides-delete "projects/my-talk"`：确认后删除整个项目。 |
 
 详见[命令参数与客户端用法](references/agent-commands.md)。也可在仓库根目录运行下文的 Python 命令；逐页大纲、LaTeX 内容和讲稿由汇报者或 Agent 编写。
@@ -69,7 +69,7 @@ python scripts/project_manager.py status "projects/my-talk"
 - 实验先交代数据集、设置、指标和基线，再说明数值及证据适用范围。将来源、作者与会议归属等图表出处记录在大纲或 TeX 注释中，投影保留读图所需的坐标、单位和图例。
 - 总结与讨论用一个正文标题和一段文字，先写论文完成了什么、证据支持什么，再写一项可开展的后续工作。
 
-为论文中的报告值、公式和关键结论附上具体位置，例如 `[式 (2)](sources/manuscript/original/paper.pdf#page=3)`。其中 `page` 从 PDF 的第一页开始计数。
+每页使用 `### S01 标题` 这样的唯一 ID，并在对应小节内为报告值、公式和关键结论附上具体位置，例如 `[式 (2)](sources/manuscript/original/paper.pdf#page=3)`。其中 `page` 从 PDF 的第一页开始计数。无实质论断的封面或纯演示页可按[证据指南](references/evidence-review.md)注明例外及原因。
 
 ```sh
 python scripts/check_evidence.py "projects/my-talk"
@@ -82,13 +82,14 @@ python scripts/check_evidence.py "projects/my-talk"
 将 [`template/template.tex`](template/template.tex) 和 [`template/template.sty`](template/template.sty) 复制到 `slides/`，并将前者命名为 `main.tex`。以核对过的内容替换模板教学页，用相对路径引用本项目中的图和样式。
 
 ```sh
+python scripts/project_manager.py approve-outline "projects/my-talk" --yes
 python scripts/build_pdf.py build "projects/my-talk"
 python scripts/build_pdf.py check "projects/my-talk"
 ```
 
 `build` 通过 `latexmk` 调用 XeLaTeX，检查编译日志和 PDF，并生成逐页预览。通过检查的 PDF 写到 `build/main.pdf`。`check` 复核已编译的文件，并检查 `slides/` 是否在编译后被修改。修改 LaTeX 或图表后，重新执行 `build`。
 
-先读 `build/check.json`，再逐页查看 `build/pages/`。编译错误、横向或纵向盒子溢出、缺字、未解析的交叉引用和越界文本会触发自动检查。公式与图表的裁切、重叠和投影可读性需要结合预览核对。构建失败时，查看 `build/compile.log` 和可用的 `build/latex/main.log`。每次重新构建都会重建 `build/`，此前导出的 PPTX 也需要重新生成。
+只在明确批准当前大纲后执行 `approve-outline --yes`；修改大纲后须重新批准。先读 `build/check.json`，再逐页查看 `build/pages/`。公式与图表的裁切、重叠和投影可读性需要结合预览核对。编译或自动检查失败时，查看 `build-failed/check.json` 和可用的日志；上一版 `build/` 保留。成功重建才替换 `build/`，此前导出的 PPTX 需要重新生成。项目模式导出要求构建与当前源码及获批大纲一致；旧项目需记录审批并重建一次。
 
 ## 从参考 PPTX 定制模板
 

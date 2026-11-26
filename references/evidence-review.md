@@ -11,7 +11,9 @@ For each substantive slide, put the claim, the evidence for it, and the line of 
 
 Use the paths from the project's manifest. For TeX, an inline link can end in `sections/method.tex#L42-L49` or `main.tex#L42`. Use `<...>` around link targets with spaces or parentheses. For a borrowed web asset, record its official URL and panel or caption. Keep presenter questions and teaching examples clearly identified in the language of the talk.
 
-Run `python scripts/check_evidence.py <talk-directory>` before outline review and again when checking the final deck. It compares the archived manuscript and supplements with their import hashes, checks local PDF page and TeX line links in the outline, and requires a precise manuscript link. For each substantive slide, the reviewer must still open the cited passage, compare it with the slide, and check the wording. A link to the wrong row on an existing page can pass the script.
+Use a heading such as `### S01 Title` for every slide, with a unique ID and the links inside that slide's section. For a cover or a purely illustrative slide with no source-backed claim, add a standalone line such as `Evidence-exempt: cover — Title and authors only` or `Evidence-exempt: illustrative — Presenter-created arithmetic example`. The reason can be in the presentation language.
+
+Run `python scripts/check_evidence.py <talk-directory>` before outline review and again when checking the final deck. It verifies archive hashes and local PDF/TeX locators, requires a manuscript link somewhere in the outline, and flags slide IDs with neither a valid locator nor an explicit exemption. Reviewers must still compare claims against the cited passages: a link to the wrong row on an existing page can pass.
 
 ## What to check on the projected slides
 
